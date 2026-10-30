@@ -1,4 +1,4 @@
-
+from flask_login import UserMixin
 from datetime import date, datetime
 
 from flask_sqlalchemy import SQLAlchemy
@@ -9,7 +9,7 @@ from sqlalchemy import CheckConstraint
 db = SQLAlchemy()
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     user_id = db.Column(db.Integer, primary_key=True)
@@ -22,7 +22,11 @@ class User(db.Model):
             "role IN ('admin', 'cashier')",
             name="check_user_role"
         ),
+
     )
+
+    def get_id(self):
+        return str(self.user_id)
 
 
 class Supplier(db.Model):

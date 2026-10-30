@@ -1,42 +1,75 @@
+
 import os
-from flask import Flask
+
+from flask import Flask, redirect, url_for
+from flask_login import LoginManager, current_user
 
 from config import Config
-from models import User, Supplier, Product, Sale, SaleItem
-from models import db
+from models import db, User, Supplier, Product, Sale, SaleItem
+from routes.auth import auth_bp
+from routes.products import products_bp
 
-# Create the Flask application
+
 app = Flask(__name__)
-
-# Load the database configuration
 app.config.from_object(Config)
 
-# Create the instance directory if needed
 os.makedirs(app.instance_path, exist_ok=True)
 
-# Connect SQLAlchemy to Flask
+# Connect the database to Flask
 db.init_app(app)
 
+# Set up login management
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "auth.login"
 
-# Define the home page
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        return db.session.get(User, int(user_id))
+    except (ValueError, TypeError):
+        return None
+
+
+# Register the login routes
+app.register_blueprint(auth_bp)
+app.register_blueprint(products_bp)
+
+
 @app.route("/")
 def home():
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+
+    return redirect(url_for("auth.login"))
+
+
+
+
+from flask_login import login_required
+
+
+@app.route("/dashboard/home")
+@login_required
+def dashboard_page():
+    if current_user.role == "admin":
+        return """
+        <h1>Admin Dashboard</h1>
+        <p>Manage products, stock, and reports.</p>
+        <form action="/logout" method="post">
+            <button type="submit">Logout</button>
+        </form>
+        """
+
     return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>GreenLeaf Grocers</title>
-    </head>
-    <body>
-        <h1>Welcome to GreenLeaf Grocers!</h1>
-        <p>Inventory and Sales Management System</p>
-        <p>Database setup is in progress.</p>
-    </body>
-    </html>
+    <h1>Cashier Dashboard</h1>
+    <p>You can use the billing module here.</p>
+    <form action="/logout" method="post">
+        <button type="submit">Logout</button>
+    </form>
     """
 
 
-
-# Start the development server
 if __name__ == "__main__":
     app.run(debug=True)

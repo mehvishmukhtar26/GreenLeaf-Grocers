@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Product</title>
+</head>
+<body>
+    <h1>Edit Product</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+        <p>
+            <label>Name:</label>
+            <input name="name" value="{{ product.name }}" required>
+        </p>
+
+        <p>
+            <label>Category:</label>
+            <input name="category" value="{{ product.category }}" required>
+        </p>
+
+        <p>
+            <label>Unit price (₹):</label>
+            <input name="unit_price" type="number" min="0"
+                   step="0.01" value="{{ product.unit_price }}" required>
+        </p>
+
+        <p>
+            <label>Stock quantity:</label>
+            <input name="stock_qty" type="number" min="0"
+                   step="1" value="{{ product.stock_qty }}" required>
+        </p>
+
+        <p>
+            <label>Reorder level:</label>
+            <input name="reorder_level" type="number" min="0"
+                   step="1" value="{{ product.reorder_level }}" required>
+        </p>
+
+        <p>
+            <label>Expiry date:</label>
+            <input name="expiry_date" type="date"
+                   value="{{ product.expiry_date or '' }}">
+        </p>
+
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <p><a href="{{ url_for('products.product_list') }}">Back to Products</a></p>
+</body>
+</html>
