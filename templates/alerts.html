@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GreenLeaf Grocers - Alerts</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f4;
+            padding: 25px;
+        }
+
+        h1 {
+            color: #205c37;
+        }
+
+        h2 {
+            color: #205c37;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #205c37;
+            color: white;
+        }
+
+        a {
+            color: #205c37;
+        }
+
+        .empty {
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>GreenLeaf Grocers - Stock & Expiry Alerts</h1>
+
+    <a href="{{ url_for('dashboard_page') }}">Back to Dashboard</a>
+
+    <h2>Low Stock Products</h2>
+
+    {% if low_stock %}
+    <table>
+        <tr>
+            <th>Product</th>
+            <th>Current Stock</th>
+            <th>Reorder Level</th>
+        </tr>
+
+        {% for product in low_stock %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.stock_qty }}</td>
+            <td>{{ product.reorder_level }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p class="empty">No low-stock products.</p>
+    {% endif %}
+
+
+    <h2>Expired Products</h2>
+
+    {% if expired_products %}
+    <table>
+        <tr>
+            <th>Product</th>
+            <th>Expiry Date</th>
+        </tr>
+
+        {% for product in expired_products %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.expiry_date }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p class="empty">No expired products.</p>
+    {% endif %}
+
+
+    <h2>Products Expiring Within 30 Days</h2>
+
+    {% if expiring_soon %}
+    <table>
+        <tr>
+            <th>Product</th>
+            <th>Expiry Date</th>
+        </tr>
+
+        {% for product in expiring_soon %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.expiry_date }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p class="empty">No products expiring within 30 days.</p>
+    {% endif %}
+
+</body>
+</html>

@@ -1,11 +1,14 @@
+import csv
+import io
 
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from flask import (
     Blueprint, render_template, request,
-    redirect, url_for, flash
+    redirect, url_for, flash, Response
 )
+
 from flask_login import login_required, current_user
 
 from models import db, Product, SaleItem
@@ -200,3 +203,136 @@ def delete_product(product_id):
         flash("Could not delete the product.", "error")
 
     return redirect(url_for("products.product_list"))
+
+@products_bp.route("/products/export")
+@login_required
+def export_products():
+
+    if current_user.role != "admin":
+        flash("Only administrators can export products.", "error")
+        return redirect("/products")
+
+    products = Product.query.order_by(Product.product_id).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # CSV column headings
+    writer.writerow([
+        "name",
+        "category",
+        "unit_price",
+        "stock_qty",
+        "reorder_level",
+        "expiry_date",
+        "supplier_id"
+    ])
+
+    # Write each product
+    for product in products:
+        writer.writerow([
+            product.name,
+            product.category,
+            product.unit_price,
+            product.stock_qty,
+            product.reorder_level,
+            product.expiry_date or "",
+            product.supplier_id or ""
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=greenleaf_products.csv"
+        }
+    )
+
+
+@products_bp.route("/products/import", methods=["POST"])
+@login_required
+def import_products():
+
+    if current_user.role != "admin":
+        flash("Only administrators can import products.", "error")
+        return redirect("/products")
+
+    uploaded_file = request.files.get("file")
+
+    if not uploaded_file or uploaded_file.filename == "":
+        flash("Please select a CSV file.", "error")
+        return redirect("/products")
+
+    if not uploaded_file.filename.lower().endswith(".csv"):
+        flash("Please upload a CSV file.", "error")
+        return redirect("/products")
+
+    try:
+        content = uploaded_file.stream.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+
+        required_columns = {
+            "name", "category", "unit_price",
+            "stock_qty", "reorder_level",
+            "expiry_date", "supplier_id"
+        }
+
+        if not reader.fieldnames or not required_columns.issubset(
+            set(reader.fieldnames)
+        ):
+            raise ValueError("CSV file has missing or incorrect column headings.")
+
+        imported_count = 0
+
+        for row in reader:
+            name = (row.get("name") or "").strip()
+            category = (row.get("category") or "").strip()
+
+            if not name or not category:
+                raise ValueError("Product name and category are required.")
+
+            unit_price = float(row["unit_price"])
+            stock_qty = int(row["stock_qty"])
+            reorder_level = int(row["reorder_level"])
+
+            if unit_price < 0 or stock_qty < 0 or reorder_level < 0:
+                raise ValueError("Price and stock values cannot be negative.")
+
+            expiry_text = (row.get("expiry_date") or "").strip()
+            expiry_date = (
+                date.fromisoformat(expiry_text)
+                if expiry_text else None
+            )
+
+            supplier_text = (row.get("supplier_id") or "").strip()
+            supplier_id = int(supplier_text) if supplier_text else None
+
+            product = Product(
+                name=name,
+                category=category,
+                unit_price=unit_price,
+                stock_qty=stock_qty,
+                reorder_level=reorder_level,
+                expiry_date=expiry_date,
+                supplier_id=supplier_id
+            )
+
+            db.session.add(product)
+            imported_count += 1
+
+        if imported_count == 0:
+            raise ValueError("The CSV file contains no products.")
+
+        db.session.commit()
+
+        flash(
+            f"{imported_count} products imported successfully.",
+            "success"
+        )
+
+    except Exception as error:
+        db.session.rollback()
+        flash(f"Import failed: {error}", "error")
+
+    return redirect("/products")
+

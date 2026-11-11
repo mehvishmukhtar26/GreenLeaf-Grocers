@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenLeaf Grocers - Billing</title>
+</head>
+
+<body>
+
+    <h1>GreenLeaf Grocers</h1>
+    <h2>Create New Bill</h2>
+
+    <p>
+        <a href="{{ url_for('dashboard_page') }}">Dashboard</a>
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('sales.create_bill') }}">
+
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Available Stock</th>
+                </tr>
+            </thead>
+
+            <tbody id="cart">
+
+                <tr>
+                    <td>
+                        <select name="product_id" required>
+                            <option value="">Select Product</option>
+
+                            {% for product in products %}
+                                <option value="{{ product.product_id }}"
+                                        data-price="{{ product.unit_price }}"
+                                        data-stock="{{ product.stock_qty }}">
+                                    {{ product.name }} -
+                                    ₹{{ product.unit_price }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <td>
+                        <input
+                            type="number"
+                            name="quantity"
+                            min="1"
+                            value="1"
+                            required
+                        >
+                    </td>
+
+                    <td class="stock">-</td>
+                </tr>
+
+            </tbody>
+        </table>
+
+        <br>
+
+        <button type="button" onclick="addRow()">
+            Add Another Product
+        </button>
+
+        <h3>Discount (%)</h3>
+
+        <input
+            type="number"
+            name="discount"
+            min="0"
+            max="100"
+            step="0.01"
+            value="0"
+            required
+        >
+
+        <br><br>
+
+        <button type="submit">Generate Bill</button>
+
+    </form>
+
+    <script>
+
+        function addRow() {
+
+            const cart = document.getElementById("cart");
+
+            const firstRow = cart.rows[0];
+
+            const newRow = firstRow.cloneNode(true);
+
+            newRow.querySelector("select").selectedIndex = 0;
+            newRow.querySelector("input").value = 1;
+            newRow.querySelector(".stock").textContent = "-";
+
+            cart.appendChild(newRow);
+        }
+
+        document.getElementById("cart").addEventListener(
+            "change",
+            function(event) {
+
+                if (event.target.name === "product_id") {
+
+                    const row = event.target.closest("tr");
+
+                    const selectedOption =
+                        event.target.options[event.target.selectedIndex];
+
+                    const stock = selectedOption.dataset.stock || "-";
+
+                    row.querySelector(".stock").textContent = stock;
+                }
+
+            }
+        );
+
+    </script>
+
+</body>
+</html>
